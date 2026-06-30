@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Newcomers App</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; color: #1e293b; min-height: 100vh; }
+
+    /* Header */
+    header {
+      background: linear-gradient(135deg, #4338ca 0%, #3b82f6 100%);
+      color: white; padding: 18px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 12px; box-shadow: 0 4px 12px rgba(67,56,202,.3);
+    }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .header-icon { background: rgba(255,255,255,.2); border-radius: 12px; padding: 10px 13px; font-size: 20px; }
+    header h1 { font-size: 24px; font-weight: 800; letter-spacing: -.5px; }
+    header p  { font-size: 13px; color: rgba(255,255,255,.75); margin-top: 2px; }
+    .header-badge { background: rgba(255,255,255,.15); border-radius: 10px; padding: 8px 16px; font-size: 13px; }
+    .header-badge span { font-weight: 700; }
+
+    /* Main */
+    main { max-width: 1100px; margin: 0 auto; padding: 28px 20px; }
+
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap: 16px; margin-bottom: 28px; }
+    .stat-card {
+      background: white; border-radius: 16px; border: 1px solid #e2e8f0;
+      padding: 20px; display: flex; align-items: center; gap: 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.05);
+      transition: transform .2s, box-shadow .2s;
+    }
+    .stat-card:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.08); }
+    .stat-icon { border-radius: 12px; padding: 12px; font-size: 20px; }
+    .stat-icon.indigo { background: #eef2ff; color: #4338ca; }
+    .stat-icon.green  { background: #f0fdf4; color: #16a34a; }
+    .stat-icon.amber  { background: #fffbeb; color: #d97706; }
+    .stat-label { font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .6px; }
+    .stat-value { font-size: 32px; font-weight: 800; color: #1e293b; line-height: 1.1; }
+
+    /* Form */
+    .form-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; padding: 20px; margin-bottom: 24px; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-end; }
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group.flex-1 { flex: 1; min-width: 180px; }
+    .form-group.w-48 { width: 190px; min-width: 150px; }
+    label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .5px; }
+    input[type="text"], input[type="date"] {
+      padding: 10px 14px; border: 1px solid #e2e8f0; border-radius: 10px;
+      font-size: 14px; color: #1e293b; background: #f8fafc; width: 100%;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    input[type="text"]:focus, input[type="date"]:focus {
+      outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+    }
+    .btn { display: inline-flex; align-items: center; gap: 7px; padding: 10px 20px; border-radius: 10px; font-size: 14px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; white-space: nowrap; }
+    .btn-primary  { background: #4338ca; color: white; }
+    .btn-primary:hover  { background: #3730a3; box-shadow: 0 4px 12px rgba(67,56,202,.3); }
+    .btn-success  { background: #16a34a; color: white; }
+    .btn-success:hover  { background: #15803d; box-shadow: 0 4px 12px rgba(22,163,74,.25); }
+    .btn-danger   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+    .btn-danger:hover   { background: #fee2e2; }
+    .btn-sm { padding: 7px 14px; font-size: 13px; }
+
+    /* Toolbar */
+    .toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+    .filter-group { display: flex; flex-wrap: wrap; gap: 6px; }
+    .filter-btn { padding: 7px 14px; border-radius: 10px; font-size: 13px; font-weight: 500; cursor: pointer; border: 1px solid #e2e8f0; background: white; color: #475569; transition: all .15s; }
+    .filter-btn:hover   { background: #f1f5f9; }
+    .filter-btn.active  { background: #4338ca; color: white; border-color: #4338ca; box-shadow: 0 2px 6px rgba(67,56,202,.3); }
+    .toolbar-right { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+    .search-wrap { position: relative; }
+    .search-wrap i { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 13px; }
+    .search-wrap input { padding-left: 32px; width: 190px; }
+
+    /* Table */
+    .table-card { background: white; border-radius: 16px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.05); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; font-size: 14px; }
+    thead { background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+    th { padding: 12px 16px; text-align: left; font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: .6px; }
+    th:last-child { text-align: right; }
+    td { padding: 13px 16px; border-bottom: 1px solid #f1f5f9; color: #334155; }
+    tr:last-child td { border-bottom: none; }
+    tbody tr:hover { background: #f8fafc; }
+    .td-num { font-family: monospace; font-size: 12px; color: #94a3b8; }
+    .td-name { font-weight: 600; color: #1e293b; }
+    .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; background: #eef2ff; color: #4338ca; }
+    .delete-btn { background: none; border: none; cursor: pointer; color: #94a3b8; font-size: 14px; padding: 4px 6px; border-radius: 6px; transition: color .15s, background .15s; }
+    .delete-btn:hover { color: #dc2626; background: #fef2f2; }
+    .table-footer { padding: 11px 16px; background: #f8fafc; border-top: 1px solid #e2e8f0; font-size: 12px; color: #94a3b8; display: flex; justify-content: space-between; }
+    .empty { padding: 48px 20px; text-align: center; color: #94a3b8; }
+    .empty i { font-size: 36px; display: block; margin-bottom: 10px; color: #cbd5e1; }
+    .empty span { font-size: 14px; }
+
+    /* Footer */
+    .footer { margin-top: 24px; text-align: center; font-size: 12px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 16px; }
+
+    /* Toast */
+    #toast {
+      position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
+      background: #1e293b; color: white; padding: 12px 22px;
+      border-radius: 12px; font-size: 14px; font-weight: 500;
+      box-shadow: 0 8px 24px rgba(0,0,0,.18); z-index: 999;
+      display: none; align-items: center; gap: 8px;
+      animation: fadeUp .25s ease;
+    }
+    #toast.show { display: flex; }
+    #toast i { color: #34d399; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+      to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
+    @media (max-width: 600px) {
+      .form-group.w-48 { width: 100%; }
+      .btn { width: 100%; justify-content: center; }
+      .search-wrap input { width: 140px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="toast"><i class="fas fa-circle-check"></i><span id="toast-msg"></span></div>
+
+<header>
+  <div class="header-left">
+    <div class="header-icon"><i class="fas fa-users"></i></div>
+    <div>
+      <h1>Newcomers App</h1>
+      <p id="header-date"></p>
+    </div>
+  </div>
+  <div class="header-badge"><span id="total-count">0</span> total records</div>
+</header>
+
+<main>
+  <!-- Stats -->
+  <div class="stats">
+    <div class="stat-card">
+      <div class="stat-icon indigo"><i class="fas fa-calendar-day"></i></div>
+      <div><div class="stat-label">Today</div><div class="stat-value" id="stat-today">0</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-calendar-alt"></i></div>
+      <div><div class="stat-label">This Month</div><div class="stat-value" id="stat-month">0</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="fas fa-graduation-cap"></i></div>
+      <div><div class="stat-label">This Semester</div><div class="stat-value" id="stat-semester">0</div></div>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="form-card">
+    <div class="form-row">
+      <div class="form-group flex-1">
+        <label><i class="fas fa-user"></i> Full Name</label>
+        <input type="text" id="input-name" placeholder="e.g. John Doe" />
+      </div>
+      <div class="form-group w-48">
+        <label><i class="fas fa-calendar-day"></i> Date</label>
+        <input type="date" id="input-date" />
+      </div>
+      <button class="btn btn-primary" onclick="handleAdd()">
+        <i class="fas fa-plus"></i> Add Newcomer
+      </button>
+    </div>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <div class="filter-group">
+      <button class="filter-btn active" data-filter="all"      onclick="setFilter('all')">All</button>
+      <button class="filter-btn"        data-filter="today"    onclick="setFilter('today')">Today</button>
+      <button class="filter-btn"        data-filter="month"    onclick="setFilter('month')">This Month</button>
+      <button class="filter-btn"        data-filter="semester" onclick="setFilter('semester')">This Semester</button>
+    </div>
+    <div class="toolbar-right">
+      <div class="search-wrap">
+        <i class="fas fa-search"></i>
+        <input type="text" id="search-input" placeholder="Search names..." oninput="render()" />
+      </div>
+      <button class="btn btn-success btn-sm" onclick="handleExport()"><i class="fas fa-file-excel"></i> Export</button>
+      <button class="btn btn-danger  btn-sm" onclick="handleClearAll()"><i class="fas fa-trash-can"></i> Clear All</button>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Name</th><th>Date</th><th>Semester</th><th style="text-align:right">Action</th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div class="table-footer">
+      <span id="footer-count">Showing 0 of 0 records</span>
+      <span id="footer-filter"></span>
+    </div>
+  </div>
+
+  <div class="footer">
+    <i class="fas fa-database"></i> Data is stored in memory for this session &nbsp;|&nbsp;
+    Total records: <strong id="footer-total">0</strong>
+  </div>
+</main>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────
+  var records = [];
+  var currentFilter = 'all';
+
+  // ── Helpers ────────────────────────────────────────────────────
+  function getToday() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function formatDate(dateStr) {
+    try {
+      var d = new Date(dateStr);
+      return d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    } catch(e) { return dateStr; }
+  }
+
+  function getSemesterShort(dateStr) {
+    try {
+      var m = new Date(dateStr).getMonth();
+      return (m >= 0 && m <= 5) ? 'S1' : 'S2';
+    } catch(e) { return '?'; }
+  }
+
+  function getSemesterFull(dateStr) {
+    try {
+      var m = new Date(dateStr).getMonth();
+      return (m >= 0 && m <= 5) ? 'Semester 1 (Jan–Jun)' : 'Semester 2 (Jul–Dec)';
+    } catch(e) { return 'Unknown'; }
+  }
+
+  function generateId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  }
+
+  // ── Toast ──────────────────────────────────────────────────────
+  var toastTimer;
+  function showToast(msg) {
+    var el = document.getElementById('toast');
+    document.getElementById('toast-msg').textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.classList.remove('show'); }, 2500);
+  }
+
+  // ── Filter ─────────────────────────────────────────────────────
+  function setFilter(f) {
+    currentFilter = f;
+    document.querySelectorAll('.filter-btn').forEach(function(btn) {
+      btn.classList.toggle('active', btn.dataset.filter === f);
+    });
+    render();
+  }
+
+  // ── Add ────────────────────────────────────────────────────────
+  function handleAdd() {
+    var nameEl = document.getElementById('input-name');
+    var dateEl = document.getElementById('input-date');
+    var name = nameEl.value.trim();
+    var date = dateEl.value;
+    if (!name) { showToast('Please enter a name.'); return; }
+    if (!date) { showToast('Please select a date.'); return; }
+    records.unshift({ id: generateId(), name: name, date: date });
+    nameEl.value = '';
+    dateEl.value = getToday();
+    showToast('✅ ' + name + ' added for ' + formatDate(date));
+    render();
+  }
+
+  // ── Delete ─────────────────────────────────────────────────────
+  function handleDelete(id) {
+    if (!confirm('Delete this record?')) return;
+    records = records.filter(function(r) { return r.id !== id; });
+    showToast('🗑️ Record deleted.');
+    render();
+  }
+
+  // ── Clear all ──────────────────────────────────────────────────
+  function handleClearAll() {
+    if (records.length === 0) return;
+    if (!confirm('Delete ALL records? This cannot be undone.')) return;
+    records = [];
+    showToast('🗑️ All records cleared.');
+    render();
+  }
+
+  // ── Export ─────────────────────────────────────────────────────
+  function handleExport() {
+    if (records.length === 0) { showToast('No records to export.'); return; }
+    if (typeof XLSX === 'undefined') { showToast('❌ Excel library not loaded.'); return; }
+    var data = records.map(function(r, i) {
+      return { '#': i + 1, 'Name': r.name, 'Date': formatDate(r.date), 'Semester': getSemesterFull(r.date) };
+    });
+    var wb = XLSX.utils.book_new();
+    var ws = XLSX.utils.json_to_sheet(data);
+    XLSX.utils.book_append_sheet(wb, ws, 'Newcomers');
+    XLSX.writeFile(wb, 'Newcomers_' + getToday() + '.xlsx');
+    showToast('📥 Exported to Excel!');
+  }
+
+  // ── Render ─────────────────────────────────────────────────────
+  function render() {
+    var today = getToday();
+    var now   = new Date();
+
+    // Compute stats
+    var statToday = records.filter(function(r) { return r.date === today; }).length;
+    var statMonth = records.filter(function(r) {
+      var d = new Date(r.date);
+      return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    }).length;
+    var curSem = getSemesterShort(today);
+    var statSem = records.filter(function(r) {
+      var d = new Date(r.date);
+      return getSemesterShort(r.date) === curSem && d.getFullYear() === now.getFullYear();
+    }).length;
+
+    document.getElementById('stat-today').textContent    = statToday;
+    document.getElementById('stat-month').textContent    = statMonth;
+    document.getElementById('stat-semester').textContent = statSem;
+    document.getElementById('total-count').textContent   = records.length;
+    document.getElementById('footer-total').textContent  = records.length;
+
+    // Filter records
+    var filtered = records.slice();
+    if (currentFilter === 'today') {
+      filtered = filtered.filter(function(r) { return r.date === today; });
+    } else if (currentFilter === 'month') {
+      filtered = filtered.filter(function(r) {
+        var d = new Date(r.date);
+        return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+    } else if (currentFilter === 'semester') {
+      filtered = filtered.filter(function(r) {
+        var d = new Date(r.date);
+        return getSemesterShort(r.date) === curSem && d.getFullYear() === now.getFullYear();
+      });
+    }
+
+    // Search
+    var search = document.getElementById('search-input').value.trim().toLowerCase();
+    if (search) {
+      filtered = filtered.filter(function(r) { return r.name.toLowerCase().indexOf(search) !== -1; });
+    }
+
+    // Sort newest first
+    filtered.sort(function(a, b) { return new Date(b.date) - new Date(a.date); });
+
+    // Render table
+    var tbody = document.getElementById('table-body');
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty"><i class="fas fa-inbox"></i><span>No records found.</span></td></tr>';
+    } else {
+      tbody.innerHTML = filtered.map(function(r, idx) {
+        return '<tr>' +
+          '<td class="td-num">' + (idx + 1) + '</td>' +
+          '<td class="td-name">' + escHtml(r.name) + '</td>' +
+          '<td>' + formatDate(r.date) + '</td>' +
+          '<td><span class="badge"><i class="fas fa-graduation-cap"></i>' + getSemesterShort(r.date) + '</span></td>' +
+          '<td style="text-align:right"><button class="delete-btn" onclick="handleDelete(\'' + r.id + '\')" title="Delete"><i class="fas fa-trash-can"></i></button></td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    // Footer counts
+    document.getElementById('footer-count').textContent = 'Showing ' + filtered.length + ' of ' + records.length + ' records';
+    var ff = document.getElementById('footer-filter');
+    ff.textContent = currentFilter !== 'all' ? '⚗ Filter: ' + currentFilter.charAt(0).toUpperCase() + currentFilter.slice(1) : '';
+  }
+
+  // Escape HTML to prevent XSS
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+  }
+
+  // ── Init ───────────────────────────────────────────────────────
+  document.getElementById('header-date').textContent = getToday();
+  document.getElementById('input-date').value = getToday();
+  render();
+
+  // Enter key submits form
+  document.getElementById('input-name').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') handleAdd();
+  });
+</script>
+</body>
+</html>
